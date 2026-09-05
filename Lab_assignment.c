@@ -18,7 +18,6 @@ struct Zone
     float shortage;
     char status[20];
 };
-/* Function Prototypes */
 void loadOriginalData(struct Zone zone[]);
 void resetResults(struct Zone zone[]);
 float getUrgency(char type[]);
@@ -37,12 +36,8 @@ void case4(struct Zone original[]);
 void case5(struct Zone original[]);
 void case6(struct Zone original[]);
 void case7(struct Zone original[]);
-/* =========================================================
-   LOAD ORIGINAL DATA
-   ========================================================= */
 void loadOriginalData(struct Zone zone[])
 {
-    /* Z01 */
     strcpy(zone[0].id, "Z01");
     strcpy(zone[0].name, "Municipal Hospital");
     strcpy(zone[0].type, "Hospital");
@@ -50,7 +45,6 @@ void loadOriginalData(struct Zone zone[])
     zone[0].minimum = 3000;
     zone[0].loss = 2;
     zone[0].waiting = 0;
-    /* Z02 */
     strcpy(zone[1].id, "Z02");
     strcpy(zone[1].name, "Central Flood Shelter");
     strcpy(zone[1].type, "Emergency Shelter");
@@ -58,7 +52,6 @@ void loadOriginalData(struct Zone zone[])
     zone[1].minimum = 2500;
     zone[1].loss = 4;
     zone[1].waiting = 1;
-    /* Z03 */
     strcpy(zone[2].id, "Z03");
     strcpy(zone[2].name, "Ward 3");
     strcpy(zone[2].type, "Residential");
@@ -66,7 +59,6 @@ void loadOriginalData(struct Zone zone[])
     zone[2].minimum = 2000;
     zone[2].loss = 8;
     zone[2].waiting = 2;
-    /* Z04 */
     strcpy(zone[3].id, "Z04");
     strcpy(zone[3].name, "Ward 5");
     strcpy(zone[3].type, "Residential");
@@ -74,7 +66,6 @@ void loadOriginalData(struct Zone zone[])
     zone[3].minimum = 1800;
     zone[3].loss = 12;
     zone[3].waiting = 3;
-    /* Z05 */
     strcpy(zone[4].id, "Z05");
     strcpy(zone[4].name, "School Emergency Shelter");
     strcpy(zone[4].type, "Emergency Shelter");
@@ -82,7 +73,6 @@ void loadOriginalData(struct Zone zone[])
     zone[4].minimum = 1600;
     zone[4].loss = 5;
     zone[4].waiting = 1;
-    /* Z06 */
     strcpy(zone[5].id, "Z06");
     strcpy(zone[5].name, "Fire and Emergency Service");
     strcpy(zone[5].type, "Emergency Service");
@@ -92,9 +82,6 @@ void loadOriginalData(struct Zone zone[])
     zone[5].waiting = 0;
     resetResults(zone);
 }
-/* =========================================================
-   RESET CALCULATED VALUES
-   ========================================================= */
 void resetResults(struct Zone zone[])
 {
     int i;
@@ -109,9 +96,6 @@ void resetResults(struct Zone zone[])
         strcpy(zone[i].status, "Unprocessed");
     }
 }
-/* =========================================================
-   URGENCY SCORE
-   ========================================================= */
 float getUrgency(char type[])
 {
     if (strcmp(type, "Hospital") == 0)
@@ -124,18 +108,6 @@ float getUrgency(char type[])
         return 5;
     return 0;
 }
-/* =========================================================
-   PRIORITY CALCULATION
-   =========================================================
-   Proposed strategy:
-   Priority =
-       Urgency
-       + Waiting Score
-       + Unresolved Demand Score
-       - Loss Penalty
-   This is our proposed strategy because the assignment
-   does not provide a fixed formula.
-   ========================================================= */
 void calculatePriority(struct Zone zone[])
 {
     int i;
@@ -146,12 +118,9 @@ void calculatePriority(struct Zone zone[])
         float demandScore;
         float lossPenalty;
         urgency = getUrgency(zone[i].type);
-        /* More waiting = more priority */
         waitingScore = zone[i].waiting * 2.0;
-        /* Larger gap between request and minimum = more need */
         demandScore =
             (zone[i].requested - zone[i].minimum) / 500.0;
-        /* Higher loss gets a small penalty */
         lossPenalty = zone[i].loss * 0.10;
         zone[i].priority =
             urgency +
@@ -160,9 +129,6 @@ void calculatePriority(struct Zone zone[])
             lossPenalty;
     }
 }
-/* =========================================================
-   SORT ZONES BY PRIORITY
-   ========================================================= */
 void sortZones(struct Zone zone[])
 {
     int i, j;
@@ -177,17 +143,14 @@ void sortZones(struct Zone zone[])
                 zone[j] = zone[j + 1];
                 zone[j + 1] = temp;
             }
-            /* Tie-breaking rule */
             else if (zone[j].priority == zone[j + 1].priority)
             {
-                /* First compare waiting cycles */
                 if (zone[j].waiting < zone[j + 1].waiting)
                 {
                     temp = zone[j];
                     zone[j] = zone[j + 1];
                     zone[j + 1] = temp;
                 }
-                /* If waiting is also equal, compare minimum */
                 else if (zone[j].waiting == zone[j + 1].waiting)
                 {
                     if (zone[j].minimum < zone[j + 1].minimum)
@@ -205,9 +168,6 @@ void sortZones(struct Zone zone[])
         zone[i].order = i + 1;
     }
 }
-/* =========================================================
-   WATER ALLOCATION
-   ========================================================= */
 void allocateWater(struct Zone zone[], float available)
 {
     int i;
@@ -220,42 +180,22 @@ void allocateWater(struct Zone zone[], float available)
             zone[i].allocated = 0;
             continue;
         }
-        /*
-           Because of distribution loss, the centre must release
-           more water than the destination finally receives.
-           Example:
-           Requested = 4000 L
-           Loss = 2%
-           Release required to deliver 4000 L:
-           4000 / 0.98
-        */
         fullRequirement =
             zone[i].requested /
             (1.0 - zone[i].loss / 100.0);
         minimumRequirement =
             zone[i].minimum /
             (1.0 - zone[i].loss / 100.0);
-        /*
-           Try to satisfy the complete request first.
-        */
         if (available >= fullRequirement)
         {
             zone[i].allocated = fullRequirement;
             available = available - fullRequirement;
         }
-        /*
-           If complete request is impossible,
-           try to satisfy the minimum requirement.
-        */
         else if (available >= minimumRequirement)
         {
             zone[i].allocated = minimumRequirement;
             available = available - minimumRequirement;
         }
-        /*
-           If even the minimum cannot be supplied,
-           give the remaining water.
-        */
         else
         {
             zone[i].allocated = available;
@@ -263,26 +203,19 @@ void allocateWater(struct Zone zone[], float available)
         }
     }
 }
-/* =========================================================
-   CALCULATE LOSS, DELIVERY AND SHORTAGE
-   ========================================================= */
 void calculateResults(struct Zone zone[])
 {
     int i;
     for (i = 0; i < TOTAL_ZONES; i++)
     {
-        /* Calculate distribution loss */
         zone[i].lossAmount =
             zone[i].allocated * zone[i].loss / 100.0;
-        /* Calculate actual delivered water */
         zone[i].delivered =
             zone[i].allocated - zone[i].lossAmount;
-        /* Calculate remaining shortage */
         zone[i].shortage =
             zone[i].requested - zone[i].delivered;
         if (zone[i].shortage < 0)
             zone[i].shortage = 0;
-        /* Determine service condition */
         if (zone[i].delivered >= zone[i].requested)
         {
             strcpy(zone[i].status, "FULL");
@@ -301,9 +234,6 @@ void calculateResults(struct Zone zone[])
         }
     }
 }
-/* =========================================================
-   COMPLETE ALLOCATION PROCESS
-   ========================================================= */
 void runAllocation(struct Zone zone[], float available)
 {
     resetResults(zone);
@@ -312,9 +242,6 @@ void runAllocation(struct Zone zone[], float available)
     allocateWater(zone, available);
     calculateResults(zone);
 }
-/* =========================================================
-   DISPLAY RESULT
-   ========================================================= */
 void displayResult(struct Zone zone[], float available)
 {
     int i;
@@ -399,9 +326,6 @@ void displayResult(struct Zone zone[], float available)
     printf("Completely Unserved          : %d zone(s)\n",
            unserved);
 }
-/* =========================================================
-   SEARCH A ZONE
-   ========================================================= */
 void searchZone(struct Zone zone[])
 {
     char id[10];
@@ -435,9 +359,6 @@ void searchZone(struct Zone zone[])
     if (found == 0)
         printf("\nZone not found.\n");
 }
-/* =========================================================
-   FIND HIGHEST UNRESOLVED REQUIREMENT
-   ========================================================= */
 void findHighestShortage(struct Zone zone[])
 {
     int i;
@@ -455,10 +376,6 @@ void findHighestShortage(struct Zone zone[])
     printf("Zone     : %s\n", zone[position].name);
     printf("Shortage : %.2f L\n", zone[position].shortage);
 }
-/* =========================================================
-   CASE 1
-   Original dataset + 13,500 L
-   ========================================================= */
 void case1(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -471,10 +388,6 @@ void case1(struct Zone original[])
     runAllocation(zone, 13500);
     displayResult(zone, 13500);
 }
-/* =========================================================
-   CASE 2
-   Enough water for all zones
-   ========================================================= */
 void case2(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -482,18 +395,10 @@ void case2(struct Zone original[])
     float enoughWater = 0;
     for (i = 0; i < TOTAL_ZONES; i++)
     {
-        /*
-           Calculate the amount required from the centre
-           to deliver the complete requested quantity
-           after distribution loss.
-        */
         enoughWater +=
             original[i].requested /
             (1.0 - original[i].loss / 100.0);
     }
-    /*
-       Add a little extra so there is definitely enough.
-    */
     enoughWater += 500;
     for (i = 0; i < TOTAL_ZONES; i++)
         zone[i] = original[i];
@@ -503,10 +408,6 @@ void case2(struct Zone original[])
     runAllocation(zone, enoughWater);
     displayResult(zone, enoughWater);
 }
-/* =========================================================
-   CASE 3
-   User gives water below combined minimum requirement
-   ========================================================= */
 void case3(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -525,20 +426,12 @@ void case3(struct Zone original[])
     runAllocation(zone, available);
     displayResult(zone, available);
 }
-/* =========================================================
-   CASE 4
-   Equal priority
-   ========================================================= */
 void case4(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
     int i;
     for (i = 0; i < TOTAL_ZONES; i++)
         zone[i] = original[i];
-    /*
-       Modify Z03 and Z04 so that their priority
-       becomes equal.
-    */
     zone[2].waiting = 3;
     zone[3].waiting = 3;
     zone[2].requested = 4000;
@@ -553,10 +446,6 @@ void case4(struct Zone original[])
     runAllocation(zone, 13500);
     displayResult(zone, 13500);
 }
-/* =========================================================
-   CASE 5
-   User increases loss of a residential zone
-   ========================================================= */
 void case5(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -570,7 +459,6 @@ void case5(struct Zone original[])
     printf("Residential zones are: Z03 and Z04\n");
     printf("Enter residential Zone ID: ");
     scanf("%s", id);
-    /* Find the selected zone */
     for (i = 0; i < TOTAL_ZONES; i++)
     {
         if (strcmp(zone[i].id, id) == 0)
@@ -584,7 +472,6 @@ void case5(struct Zone original[])
         printf("Zone not found.\n");
         return;
     }
-    /* Check whether it is residential */
     if (strcmp(zone[position].type, "Residential") != 0)
     {
         printf("Invalid zone. Please select a residential zone.\n");
@@ -606,10 +493,6 @@ void case5(struct Zone original[])
     runAllocation(zone, 13500);
     displayResult(zone, 13500);
 }
-/* =========================================================
-   CASE 6
-   User increases waiting period of an underserved zone
-   ========================================================= */
 void case6(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -617,9 +500,6 @@ void case6(struct Zone original[])
     int position = -1;
     char id[10];
     int newWaiting;
-    /*
-       First run original case to identify underserved zones.
-    */
     for (i = 0; i < TOTAL_ZONES; i++)
         zone[i] = original[i];
     runAllocation(zone, 13500);
@@ -650,9 +530,6 @@ void case6(struct Zone original[])
         printf("Zone not found.\n");
         return;
     }
-    /*
-       Check whether selected zone was underserved.
-    */
     if (strcmp(zone[position].status, "BELOW MIN") != 0 &&
         strcmp(zone[position].status, "UNSERVED") != 0)
     {
@@ -675,10 +552,6 @@ void case6(struct Zone original[])
     runAllocation(zone, 13500);
     displayResult(zone, 13500);
 }
-/* =========================================================
-   CASE 7
-   Independent test - user chooses water amount
-   ========================================================= */
 void case7(struct Zone original[])
 {
     struct Zone zone[TOTAL_ZONES];
@@ -698,14 +571,10 @@ void case7(struct Zone original[])
     runAllocation(zone, available);
     displayResult(zone, available);
 }
-/* =========================================================
-   MAIN FUNCTION
-   ========================================================= */
 int main()
 {
     struct Zone original[TOTAL_ZONES];
     int choice;
-    /* Load assignment data only once */
     loadOriginalData(original);
     do
     {
